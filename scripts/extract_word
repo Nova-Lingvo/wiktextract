@@ -1,0 +1,46 @@
+#!/bin/bash
+
+cd "${BASH_SOURCE%/*}/../"
+source "$HOME/idk/scripts/common.sh"
+
+set -euo pipefail
+
+lang="$1"
+word="$2"
+
+tmpdir="tmp"
+if [ ! -d $tmpdir ]; then
+	mkdir $tmpdir
+fi
+
+dumpfn="$tmpdir/en-latest.xml.bz2"
+if [ ! -f "$dumpfn" ]; then
+	red "No file $dumpfn found - run download"
+	exit 1
+fi
+
+export PYTHONPATH=$HOME/code/wikitextprocessor
+wiktwords=$PWD/wiktwords
+
+cachefn="$tmpdir/wikt-cache"
+pagesdir="pages"
+
+if [ ! -f "$cachefn" ]; then
+	blue "### Creating cache"
+	$wiktwords \
+		--cache "$cachefn" \
+		--pages-dir "$pagesdir" \
+		"$dumpfn"
+fi
+
+outfile="$tmpdir/outfile"
+
+blue "### Processing to $outfile"
+$wiktwords \
+	--cache "$cachefn" \
+	--all \
+	--language $lang \
+	--out "$outfile" \
+	--page $pagesdir/Words/${word:0:2}/$word.txt
+
+cat "$outfile" | jq

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+cd "${BASH_SOURCE%/*}/../"
+source "$HOME/idk/scripts/common.sh"
+
+outdir="tmp"
+if [ ! -d $outdir ]; then
+	mkdir $outdir
+fi
+
+set -euo pipefail
+
+for lang in en; do
+	green "### Downloading $lang"
+
+	baseurl="https://dumps.wikimedia.org/${lang}wiktionary/latest/"
+	file="${lang}wiktionary-latest-pages-articles.xml.bz2"
+	date=$(curl "$baseurl" 2>/dev/null | egrep "\"$file\"" | perl -ne '@p = split /\s+/; print $p[2] . "\n"')
+	outfile="${date}_${file}"
+	outpath="$outdir/$outfile"
+	if [ -f "$outpath" ]; then
+		echo "  $outfile already exists; skipping"
+	else
+		echo "  $outfile downloading"
+		tmp="$outpath.tmp"
+		curl $baseurl/$file > $tmp
+		mv "$tmp" "$outpath"
+	fi
+	link="$outdir/${lang}-latest.xml.bz2"
+	rm $link 2> /dev/null || true
+	ln -s "$outfile" $link
+done
